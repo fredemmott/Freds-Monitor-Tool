@@ -3,6 +3,7 @@
 
 #include <FredEmmott/MonitorTool/Profile.hpp>
 #include <FredEmmott/MonitorTool/QueryDisplayConfig.hpp>
+#include <FredEmmott/MonitorTool/SetDisplayConfig.hpp>
 #include <FredEmmott/MonitorTool/json.hpp>
 #include <winrt/base.h>
 
@@ -31,8 +32,9 @@ void Profile::Save(const std::filesystem::path& path) const {
     FILE_ATTRIBUTE_NORMAL,
     NULL)};
   if (!file) {
-    // TODO: throw error
-    __debugbreak();
+    const auto ec = GetLastError();
+    throw FileOpenError(
+      std::format("Failed to open `{}`: {}", winrt::to_string(fullPath), ec));
   }
 
   const auto totalBytes = json.size();
@@ -45,8 +47,8 @@ void Profile::Save(const std::filesystem::path& path) const {
           totalBytes - bytesWritten,
           &bytesThisLoop,
           nullptr)) {
-      // TODO
-      __debugbreak();
+      throw FileWriteError(
+        std::format("Failed to write to file: {}", GetLastError()));
     }
     bytesWritten += bytesThisLoop;
   }
@@ -64,8 +66,9 @@ Profile Profile::Load(const std::filesystem::path& path) {
     FILE_ATTRIBUTE_NORMAL,
     NULL)};
   if (!file) {
-    // TODO: throw error
-    __debugbreak();
+    const auto ec = GetLastError();
+    throw FileOpenError(
+      std::format("Failed to open `{}`: {}", winrt::to_string(fullPath), ec));
   }
   const auto fileSize = GetFileSize(file.get(), nullptr);
   std::string buffer(fileSize, '\0');
@@ -78,10 +81,10 @@ Profile Profile::Load(const std::filesystem::path& path) {
           fileSize - bytesRead,
           &bytesThisLoop,
           nullptr)) {
-      // TODO
-      __debugbreak();
+      throw FileReadError(
+        std::format("Failed to read from file: {}", GetLastError()));
     }
-    bytesRead += bytesRead;
+    bytesRead += bytesThisLoop;
   }
   const auto j = nlohmann::json::parse(buffer);
   return {
@@ -99,6 +102,24 @@ Profile Profile::CreateFromActiveConfiguration(const std::string& name) {
     .mName = name,
     .mDisplayConfig = QueryDisplayConfig(),
   };
+}
+
+bool Profile::CanApply() const {
+  try {
+    SetDisplayConfig(mDisplayConfig, SetDisplayConfigValidateFlags);
+    return true;
+  } catch (...) {
+    return false;
+  }
+}
+
+void Profile::Apply() const {
+  try {
+    SetDisplayConfig(mDisplayConfig, SetDisplayConfigValidateFlags);
+  } catch (const RuntimeError& e) {
+    throw DisplayConfigValidationError(std::format("Validation failed: {}", e.what()));
+  }
+  SetDisplayConfig(mDisplayConfig, SetDisplayConfigApplyFlags);
 }
 
 }// namespace FredEmmott::MonitorTool

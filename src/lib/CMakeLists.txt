@@ -41,4 +41,5 @@ target_link_libraries(
     FredEmmott_MonitorTool_Profile
     PRIVATE
     FredEmmott_MonitorTool_QueryDisplayConfig
+    FredEmmott_MonitorTool_SetDisplayConfig
     FredEmmott_MonitorTool_json)

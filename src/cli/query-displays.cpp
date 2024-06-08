@@ -11,8 +11,8 @@
 
 int main(int argc, char** argv) {
   try {
-    const auto profile = FredEmmott::MonitorTool::Profile::CreateFromActiveConfiguration("3 Displays");
-    profile.Save(std::filesystem::path { "3 displays.json" });
+    const auto profile = FredEmmott::MonitorTool::Profile::Load("3 displays.json");
+    profile.Apply();
   } catch (const FredEmmott::MonitorTool::RuntimeError& e) {
     std::cerr << "Fatal error: " << e.what() << std::endl;
     return 1;
