@@ -5,5 +5,4 @@ add_executable(
 target_link_libraries(
   query-displays
   FredEmmott_MonitorTool_Profile
-  FredEmmott_MonitorTool_QueryDisplayConfig
 )

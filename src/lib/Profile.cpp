@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: ISC
 
 #include <FredEmmott/MonitorTool/Profile.hpp>
+#include <FredEmmott/MonitorTool/QueryDisplayConfig.hpp>
 #include <FredEmmott/MonitorTool/json.hpp>
 #include <winrt/base.h>
 
@@ -91,6 +92,13 @@ Profile Profile::Load(const std::filesystem::path& path) {
             .mModes = j.at("Modes"),
         },
     };
+}
+
+Profile Profile::CreateFromActiveConfiguration(const std::string& name) {
+  return {
+    .mName = name,
+    .mDisplayConfig = QueryDisplayConfig(),
+  };
 }
 
 }// namespace FredEmmott::MonitorTool

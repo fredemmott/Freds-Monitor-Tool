@@ -10,6 +10,8 @@
 
 namespace FredEmmott::MonitorTool {
 struct Profile final {
+  static Profile CreateFromActiveConfiguration(const std::string& name);
+
   static Profile Load(const std::filesystem::path& path);
   void Save(const std::filesystem::path& path) const;
 
