@@ -1,11 +1,14 @@
-add_library(FredEmmott_MonitorTool_json INTERFACE)
+add_library(
+    FredEmmott_MonitorTool_json
+    STATIC
+    json.cpp)
 target_include_directories(FredEmmott_MonitorTool_json
-    INTERFACE
+    PUBLIC
     include)
 find_package(nlohmann_json)
 target_link_libraries(
     FredEmmott_MonitorTool_json
-    INTERFACE
+    PUBLIC
     nlohmann_json::nlohmann_json)
 
 add_library(
@@ -16,3 +19,26 @@ target_include_directories(
     FredEmmott_MonitorTool_QueryDisplayConfig
     PUBLIC
     include)
+
+add_library(
+    FredEmmott_MonitorTool_SetDisplayConfig
+    STATIC
+    SetDisplayConfig.cpp)
+target_include_directories(
+    FredEmmott_MonitorTool_SetDisplayConfig
+    PUBLIC
+    include)
+
+add_library(
+    FredEmmott_MonitorTool_Profile
+    STATIC
+    Profile.cpp)
+target_include_directories(
+    FredEmmott_MonitorTool_Profile
+    PUBLIC
+    include)
+target_link_libraries(
+    FredEmmott_MonitorTool_Profile
+    PRIVATE
+    FredEmmott_MonitorTool_QueryDisplayConfig
+    FredEmmott_MonitorTool_json)

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: ISC
 
 #include <FredEmmott/MonitorTool/QueryDisplayConfig.hpp>
-#include <FredEmmott/MonitorTool/json.hpp>
+#include <FredEmmott/MonitorTool/Profile.hpp>
 
 #include <iostream>
 #include <vector>
@@ -11,13 +11,11 @@
 
 int main(int argc, char** argv) {
   try {
-    const auto [paths, modes] = FredEmmott::MonitorTool::QueryDisplayConfig();
-    const nlohmann::json j {
-      {"paths", paths},
-      {"modes", modes},
+    const FredEmmott::MonitorTool::Profile profile {
+      .mName = "3 Displays",
+      .mDisplayConfig = FredEmmott::MonitorTool::QueryDisplayConfig(),
     };
-
-    std::cout << j.dump(2) << std::endl;
+    profile.Save(std::filesystem::path { "3 displays.json" });
   } catch (const FredEmmott::MonitorTool::RuntimeError& e) {
     std::cerr << "Fatal error: " << e.what() << std::endl;
     return 1;

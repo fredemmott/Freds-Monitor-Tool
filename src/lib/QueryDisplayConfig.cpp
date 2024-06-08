@@ -26,7 +26,7 @@ DisplayConfig QueryDisplayConfig(uint32_t flags)
     paths.resize(numPaths);
     modes.resize(numModes);
 
-    result = QueryDisplayConfig(
+    result = ::QueryDisplayConfig(
       flags, &numPaths, paths.data(), &numModes, modes.data(), nullptr);
       if (result == ERROR_SUCCESS) {
         return {paths, modes};
