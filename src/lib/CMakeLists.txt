@@ -1,2 +1,4 @@
-# TODO
-
+add_library(FredEmmott_MonitorTool_json INTERFACE)
+target_include_directories(FredEmmott_MonitorTool_json INTERFACE include)
+find_package(nlohmann_json)
+target_link_libraries(FredEmmott_MonitorTool_json INTERFACE nlohmann_json::nlohmann_json)
