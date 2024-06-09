@@ -90,6 +90,7 @@ int WINAPI wWinMain(
   if (profileName.empty()) {
     PrintCERR(
       std::format("Profile name was empty or not provided\n{}", HelpText));
+    return 1;
   }
 
   try {
