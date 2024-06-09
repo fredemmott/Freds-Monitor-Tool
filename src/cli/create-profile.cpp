@@ -4,12 +4,13 @@
 #include <FredEmmott/MonitorTool/Profile.hpp>
 #include <FredEmmott/MonitorTool/except.hpp>
 #include <winrt/base.h>
+#include "console.hpp"
 
-#include <iostream>
-#include <span>
 #include <vector>
 
 #include <Windows.h>
+
+using namespace FredEmmott::MonitorTool::CLI;
 
 namespace {
 constexpr char HelpText[] {
@@ -17,48 +18,6 @@ constexpr char HelpText[] {
   "  fmt-create-profile PROFILE_NAME [--path PATH]\n"
   "  fmt-create-profile --help",
 };
-
-bool AttachToParentConsole() {
-  static bool sAttached;
-  static std::once_flag sOnce;
-  std::call_once(sOnce, [attached = &sAttached]() {
-    *attached = AttachConsole(ATTACH_PARENT_PROCESS);
-    if (!*attached) {
-      return;
-    }
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-    freopen("CONIN$", "w", stdin);
-  });
-  return sAttached;
-}
-
-bool HaveConsole() {
-  static bool sHaveConsole;
-  static std::once_flag sOnce;
-  std::call_once(sOnce, [v = &sHaveConsole]() {
-    *v = (!!GetStdHandle(STD_ERROR_HANDLE)) || AttachToParentConsole();
-  });
-  return sHaveConsole;
-}
-
-void PrintCERR(auto message) {
-  if (HaveConsole()) {
-    std::cerr << message << std::endl;
-  } else {
-    const auto buf = std::string(message);
-    OutputDebugStringA(buf.c_str());
-    MessageBoxA(NULL, buf.c_str(), "Freds Monitor Tool", MB_ICONERROR | MB_OK);
-  }
-}
-
-void PrintCOUT(auto message) {
-  if (HaveConsole()) {
-    std::cout << message << std::endl;
-  } else {
-    OutputDebugStringA(message);
-  }
-}
 
 void HelpCERR() {
   PrintCERR(HelpText);
