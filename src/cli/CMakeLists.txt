@@ -52,7 +52,16 @@ target_link_libraries(
   FredEmmott_MonitorTool_console
 )
 
+set(VERSION_RC "${CMAKE_CURRENT_BINARY_DIR}/version.rc")
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/version.in.rc"
+  "${VERSION_RC}"
+  @ONLY
+  NEWLINE_STYLE UNIX
+)
+
 foreach(TARGET IN LISTS REDIST_TARGETS)
   sign_target(${TARGET})
+  target_sources("${TARGET}" PRIVATE manifest.xml "${VERSION_RC}")
 endforeach()
 install(TARGETS ${REDIST_TARGETS} DESTINATION ".")
