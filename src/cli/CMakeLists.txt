@@ -10,6 +10,11 @@ add_library(
   STATIC
   console.cpp
 )
+target_link_libraries(
+  FredEmmott_MonitorTool_console
+  PUBLIC
+  FredEmmott_MonitorTool_Config
+) 
 
 add_executable(
   fmt-create-profile

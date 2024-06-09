@@ -66,7 +66,10 @@ int WINAPI wWinMain(
     std::cout << message << std::endl;
   } else {
     MessageBoxA(
-      NULL, message.c_str(), "Freds Monitor Tool", MB_OK | MB_ICONINFORMATION);
+      NULL,
+      message.c_str(),
+      std::format("Freds Monitor Tool v{}", VersionString).c_str(),
+      MB_OK | MB_ICONINFORMATION);
   }
   return 0;
 }

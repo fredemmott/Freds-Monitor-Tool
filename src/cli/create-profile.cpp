@@ -3,15 +3,15 @@
 
 #include "console.hpp"
 
+#include <FredEmmott/MonitorTool/Config.hpp>
 #include <FredEmmott/MonitorTool/Profile.hpp>
 #include <FredEmmott/MonitorTool/except.hpp>
-#include <FredEmmott/MonitorTool/Config.hpp>
 #include <winrt/base.h>
 
+#include <format>
 #include <vector>
 
 #include <Windows.h>
-#include <format>
 #include <string.h>
 
 using namespace FredEmmott::MonitorTool::CLI;
@@ -27,7 +27,9 @@ const auto HelpText = std::format(
   "  fmt-create-profile --help\n"
   "\n"
   "---\n"
-  "{}", VersionString, LicenseText);
+  "{}",
+  VersionString,
+  LicenseText);
 
 void HelpCERR() {
   PrintCERR(HelpText);
@@ -111,7 +113,15 @@ int WINAPI wWinMain(
           return 1;
         } else {
           const auto result = MessageBoxA(
-            NULL, std::format("A similarly named profile already exists (`{})`; Would you like to create this profile anyway?\nRe-run with `--force` to skip this message in the future.", it->mName).c_str(), "Freds Monitor Tool", MB_ICONWARNING | MB_YESNO);
+            NULL,
+            std::format(
+              "A similarly named profile already exists (`{})`; Would you like "
+              "to create this profile anyway?\nRe-run with `--force` to skip "
+              "this message in the future.",
+              it->mName)
+              .c_str(),
+            std::format("Freds Monitor Tool v{}", VersionString).c_str(),
+            MB_ICONWARNING | MB_YESNO);
           if (result != IDYES) {
             return 0;
           }

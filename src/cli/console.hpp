@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: ISC
 #pragma once
 
+#include <FredEmmott/MonitorTool/Config.hpp>
+
+#include <format>
 #include <iostream>
 
 #include <Windows.h>
@@ -15,9 +18,13 @@ void PrintCERR(auto message) {
   if (HaveConsole()) {
     std::cerr << message << std::endl;
   } else {
-    const std::string buf { message };
+    const std::string buf {message};
     OutputDebugStringA(buf.c_str());
-    MessageBoxA(NULL, buf.c_str(), "Freds Monitor Tool", MB_ICONERROR | MB_OK);
+    MessageBoxA(
+      NULL,
+      buf.c_str(),
+      std::format("Freds Monitor Tool v{}", Config::VersionString).c_str(),
+      MB_ICONERROR | MB_OK);
   }
 }
 
