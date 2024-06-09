@@ -25,3 +25,14 @@ target_link_libraries(
   FredEmmott_MonitorTool_Profile
   FredEmmott_MonitorTool_console
 )
+
+add_executable(
+  fmt-list-profiles
+  WIN32
+  list-profiles.cpp
+)
+target_link_libraries(
+  fmt-list-profiles
+  FredEmmott_MonitorTool_Profile
+  FredEmmott_MonitorTool_console
+)
