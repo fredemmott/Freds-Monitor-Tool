@@ -10,13 +10,14 @@
 #include <vector>
 
 #include <Windows.h>
+#include <string.h>
 
 using namespace FredEmmott::MonitorTool::CLI;
 
 namespace {
 constexpr char HelpText[] {
   "USAGE: \n"
-  "  fmt-create-profile PROFILE_NAME [--path PATH]\n"
+  "  fmt-create-profile PROFILE_NAME [--path PATH] [--force]\n"
   "  fmt-create-profile --help",
 };
 
@@ -39,6 +40,7 @@ int WINAPI wWinMain(
   int argc {};
   const auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 
+  bool force = false;
   std::wstring_view profilePath;
   std::string profileName;
 
@@ -48,6 +50,10 @@ int WINAPI wWinMain(
       if (arg == L"--help") {
         HelpCOUT();
         return 0;
+      }
+      if (arg == L"--force") {
+        force = true;
+        continue;
       }
       if (arg == L"--path") {
         if (i + 1 >= argc) {
@@ -79,9 +85,32 @@ int WINAPI wWinMain(
   }
 
   try {
-    const auto profile
-      = FredEmmott::MonitorTool::Profile::CreateFromActiveConfiguration(
-        profileName);
+    using Profile = FredEmmott::MonitorTool::Profile;
+    if (!force) {
+      const auto profiles = Profile::Enumerate();
+      const auto it
+        = std::ranges::find_if(profiles, [&a = profileName](const auto& b) {
+            return _stricmp(a.c_str(), b.mName.c_str()) == 0;
+          });
+
+      if (it != profiles.end()) {
+        if (HaveConsole()) {
+          PrintCERR(std::format(
+            "A similarly named profile already exists (`{}`); re-run with "
+            "`--force` to create a duplicate.",
+            it->mName));
+          return 1;
+        } else {
+          const auto result = MessageBoxA(
+            NULL, std::format("A similarly named profile already exists (`{})`; Would you like to create this profile anyway?\nRe-run with `--force` to skip this message in the future.", it->mName).c_str(), "Freds Monitor Tool", MB_ICONWARNING | MB_YESNO);
+          if (result != IDYES) {
+            return 0;
+          }
+        }
+      }
+    }
+
+    const auto profile = Profile::CreateFromActiveConfiguration(profileName);
     if (profilePath.empty()) {
       profile.Save();
     } else {
