@@ -17,12 +17,12 @@ target_link_libraries(
 )
 
 add_executable(
-  fmt-load-profile
+  fmt-apply-profile
   WIN32
-  load-profile.cpp
+  apply-profile.cpp
 )
 target_link_libraries(
-  fmt-load-profile
+  fmt-apply-profile
   FredEmmott_MonitorTool_Config
   FredEmmott_MonitorTool_Profile
   FredEmmott_MonitorTool_console

@@ -22,8 +22,8 @@ const auto HelpText = std::format(
   "Freds Monitor Tool v{}\n"
   "\n"
   "USAGE: \n"
-  "  fmt-load-profile [--path] PROFILE_NAME_OR_PATH\n"
-  "  fmt-load-profile --help\n"
+  "  fmt-apply-profile [--path] PROFILE_NAME_OR_PATH\n"
+  "  fmt-apply-profile --help\n"
   "\n"
   "---\n"
   "{}",
