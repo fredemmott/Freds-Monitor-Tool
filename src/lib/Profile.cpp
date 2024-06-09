@@ -7,12 +7,50 @@
 #include <FredEmmott/MonitorTool/json.hpp>
 #include <winrt/base.h>
 
+#include <ShlObj.h>
 #include <Windows.h>
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+template <>
+struct adl_serializer<winrt::guid> {
+  static void from_json(const nlohmann::json& j, winrt::guid& v) {
+    v = winrt::guid {j.get<std::string>()};
+  }
+
+  static void to_json(nlohmann::json& j, const winrt::guid& v) {
+    j = winrt::to_string(winrt::to_hstring(v));
+  }
+};
+NLOHMANN_JSON_NAMESPACE_END
 
 namespace FredEmmott::MonitorTool {
 
+namespace {
+std::filesystem::path RunOnce_GetProfilesPath() {
+  PWSTR pathStr {nullptr};
+
+  winrt::check_hresult(SHGetKnownFolderPath(
+    FOLDERID_LocalAppData, KF_FLAG_DEFAULT | KF_FLAG_CREATE, NULL, &pathStr));
+  if (!pathStr) {
+    return {};
+  }
+  const auto path
+    = std::filesystem::path(pathStr) / "Freds Monitor Tool" / "Profiles";
+  CoTaskMemFree(pathStr);
+  return path;
+}
+const auto ProfilesPath = RunOnce_GetProfilesPath();
+
+winrt::guid CreateRandomGUID() {
+  GUID ret;
+  winrt::check_hresult(CoCreateGuid(&ret));
+  return std::bit_cast<winrt::guid>(ret);
+}
+}// namespace
+
 void Profile::Save(const std::filesystem::path& path) const {
   const nlohmann::json j {
+    {"GUID", mGuid},
     {"Name", mName},
     {"Paths", mDisplayConfig.mPaths},
     {"Modes", mDisplayConfig.mModes},
@@ -88,12 +126,12 @@ Profile Profile::Load(const std::filesystem::path& path) {
   }
   const auto j = nlohmann::json::parse(buffer);
   return {
-        .mPath = path,
         .mName = j.at("Name"),
         .mDisplayConfig = {
             .mPaths = j.at("Paths"),
             .mModes = j.at("Modes"),
         },
+        .mGuid = j.at("GUID"),
     };
 }
 
@@ -101,7 +139,22 @@ Profile Profile::CreateFromActiveConfiguration(const std::string& name) {
   return {
     .mName = name,
     .mDisplayConfig = QueryDisplayConfig(),
+    .mGuid = CreateRandomGUID(),
   };
+}
+
+std::vector<Profile> Profile::Enumerate() {
+  std::vector<Profile> ret;
+  for (auto&& entry: std::filesystem::directory_iterator(ProfilesPath)) {
+    if (!entry.is_regular_file()) {
+      continue;
+    }
+    if (entry.path().extension() != ".json") {
+      continue;
+    }
+    ret.push_back(Profile::Load(entry.path()));
+  }
+  return ret;
 }
 
 bool Profile::CanApply() const {
@@ -117,9 +170,51 @@ void Profile::Apply() const {
   try {
     SetDisplayConfig(mDisplayConfig, SetDisplayConfigValidateFlags);
   } catch (const RuntimeError& e) {
-    throw DisplayConfigValidationError(std::format("Validation failed: {}", e.what()));
+    throw DisplayConfigValidationError(
+      std::format("Validation failed: {}", e.what()));
   }
   SetDisplayConfig(mDisplayConfig, SetDisplayConfigApplyFlags);
+}
+
+void Profile::Save() const {
+  if (!mPath.empty()) {
+    this->Save(mPath);
+    return;
+  }
+
+  const auto profiles = Profile::Enumerate();
+  const auto matching = std::ranges::find(profiles, mGuid, &Profile::mGuid);
+  if (matching != profiles.end()) {
+    this->Save(matching->mPath);
+    return;
+  }
+
+  // Pick absolutely known-safe chars only
+  std::string basename;
+  for (const char it: mName) {
+    if (
+      (it >= 'a' && it <= 'z') || (it >= 'A' && it <= 'Z')
+      || (it >= '0' && it <= '9') || (it == ' ') || (it == '-')
+      || (it == '_')) {
+      basename += it;
+    }
+  }
+
+  const auto path = ProfilesPath / (basename + ".json");
+  if (!std::filesystem::exists(path)) {
+    this->Save(path);
+    return;
+  }
+
+  uint16_t i = 1;
+  while (true) {
+    const auto path = ProfilesPath / std::format("{}-{:04x}.json", basename, i);
+    if (std::filesystem::exists(path)) {
+      continue;
+    }
+    this->Save(path);
+    return;
+  }
 }
 
 }// namespace FredEmmott::MonitorTool

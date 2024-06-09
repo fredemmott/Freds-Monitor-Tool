@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <winrt/base.h>
 
 namespace FredEmmott::MonitorTool {
 
@@ -28,7 +29,7 @@ class FileReadError final : public RuntimeError {
 };
 
 class DisplayConfigValidationError final : public RuntimeError {
-  public:
+ public:
   using RuntimeError::RuntimeError;
 };
 
@@ -37,6 +38,8 @@ struct Profile final {
 
   static Profile Load(const std::filesystem::path& path);
   void Save(const std::filesystem::path& path) const;
+  /* Saves to the same path it was loaded from, or the user's profile store if it's not yet been saved. */
+  void Save() const;
 
   static std::vector<Profile> Enumerate();
 
@@ -44,9 +47,13 @@ struct Profile final {
   bool CanApply() const;
   void Apply() const;
 
-  std::filesystem::path mPath;
-
   std::string mName;
   DisplayConfig mDisplayConfig;
+
+  // Automatically filled
+  winrt::guid mGuid;
+
+  // Automatically filled by `Load()` and `Enumerate()`
+  std::filesystem::path mPath;
 };
 }// namespace FredEmmott::MonitorTool
