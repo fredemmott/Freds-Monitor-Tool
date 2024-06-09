@@ -3,24 +3,32 @@
 
 #include "console.hpp"
 
+#include <FredEmmott/MonitorTool/Config.hpp>
 #include <FredEmmott/MonitorTool/Profile.hpp>
 #include <FredEmmott/MonitorTool/except.hpp>
 #include <winrt/base.h>
 
-#include <string.h>
 #include <algorithm>
 #include <format>
 
 #include <Windows.h>
+#include <string.h>
 
+using namespace FredEmmott::MonitorTool::Config;
 using namespace FredEmmott::MonitorTool::CLI;
 
 namespace {
-constexpr char HelpText[] {
+const auto HelpText = std::format(
+  "Freds Monitor Tool v{}\n"
+  "\n"
   "USAGE: \n"
   "  fmt-load-profile [--path] PROFILE_NAME_OR_PATH\n"
-  "  fmt-load-profile --help",
-};
+  "  fmt-load-profile --help\n"
+  "\n"
+  "---\n"
+  "{}",
+  VersionString,
+  LicenseText);
 
 }// namespace
 
@@ -84,7 +92,8 @@ int WINAPI wWinMain(
         });
       }
       if (it == profiles.end()) {
-        PrintCERR(std::format("Couldn't find a profile called '{}'", profileName));
+        PrintCERR(
+          std::format("Couldn't find a profile called '{}'", profileName));
         return 1;
       }
 

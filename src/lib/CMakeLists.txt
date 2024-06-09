@@ -1,45 +1,74 @@
+set(CODEGEN_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}")
+file(READ "../../LICENSE" LICENSE_TEXT)
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/Config.in.hpp"
+    "${CODEGEN_BUILD_DIR}/include/FredEmmott/MonitorTool/Config.hpp"
+    @ONLY
+    NEWLINE_STYLE UNIX
+)
+
+add_library(
+    FredEmmott_MonitorTool_Config
+    INTERFACE
+)
+target_include_directories(
+    FredEmmott_MonitorTool_Config
+    INTERFACE
+    "${CODEGEN_BUILD_DIR}/include"
+)
+
 add_library(
     FredEmmott_MonitorTool_json
     STATIC
-    json.cpp)
+    json.cpp
+)
 target_include_directories(FredEmmott_MonitorTool_json
     PUBLIC
-    include)
+    include
+)
 find_package(nlohmann_json)
 target_link_libraries(
     FredEmmott_MonitorTool_json
     PUBLIC
-    nlohmann_json::nlohmann_json)
+    nlohmann_json::nlohmann_json
+)
 
 add_library(
     FredEmmott_MonitorTool_QueryDisplayConfig
     STATIC
-    QueryDisplayConfig.cpp)
+    QueryDisplayConfig.cpp
+)
 target_include_directories(
     FredEmmott_MonitorTool_QueryDisplayConfig
     PUBLIC
-    include)
+    include
+)
 
 add_library(
     FredEmmott_MonitorTool_SetDisplayConfig
     STATIC
-    SetDisplayConfig.cpp)
+    SetDisplayConfig.cpp
+)
 target_include_directories(
     FredEmmott_MonitorTool_SetDisplayConfig
     PUBLIC
-    include)
+    include
+)
 
 add_library(
     FredEmmott_MonitorTool_Profile
     STATIC
-    Profile.cpp)
+    Profile.cpp
+)
 target_include_directories(
     FredEmmott_MonitorTool_Profile
     PUBLIC
-    include)
+    include
+)
 target_link_libraries(
     FredEmmott_MonitorTool_Profile
     PRIVATE
     FredEmmott_MonitorTool_QueryDisplayConfig
     FredEmmott_MonitorTool_SetDisplayConfig
-    FredEmmott_MonitorTool_json)
+    FredEmmott_MonitorTool_json
+)

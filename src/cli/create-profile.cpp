@@ -5,21 +5,29 @@
 
 #include <FredEmmott/MonitorTool/Profile.hpp>
 #include <FredEmmott/MonitorTool/except.hpp>
+#include <FredEmmott/MonitorTool/Config.hpp>
 #include <winrt/base.h>
 
 #include <vector>
 
 #include <Windows.h>
+#include <format>
 #include <string.h>
 
 using namespace FredEmmott::MonitorTool::CLI;
+using namespace FredEmmott::MonitorTool::Config;
 
 namespace {
-constexpr char HelpText[] {
+
+const auto HelpText = std::format(
+  "Freds Monitor Tool v{}\n"
+  "\n"
   "USAGE: \n"
   "  fmt-create-profile PROFILE_NAME [--path PATH] [--force]\n"
-  "  fmt-create-profile --help",
-};
+  "  fmt-create-profile --help\n"
+  "\n"
+  "---\n"
+  "{}", VersionString, LicenseText);
 
 void HelpCERR() {
   PrintCERR(HelpText);

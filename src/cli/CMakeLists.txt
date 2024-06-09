@@ -11,6 +11,7 @@ add_executable(
 )
 target_link_libraries(
   fmt-create-profile
+  FredEmmott_MonitorTool_Config
   FredEmmott_MonitorTool_Profile
   FredEmmott_MonitorTool_console
 )
@@ -22,6 +23,7 @@ add_executable(
 )
 target_link_libraries(
   fmt-load-profile
+  FredEmmott_MonitorTool_Config
   FredEmmott_MonitorTool_Profile
   FredEmmott_MonitorTool_console
 )
@@ -33,6 +35,7 @@ add_executable(
 )
 target_link_libraries(
   fmt-list-profiles
+  FredEmmott_MonitorTool_Config
   FredEmmott_MonitorTool_Profile
   FredEmmott_MonitorTool_console
 )
