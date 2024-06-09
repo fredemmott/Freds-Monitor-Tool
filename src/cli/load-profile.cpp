@@ -7,6 +7,7 @@
 #include <FredEmmott/MonitorTool/except.hpp>
 #include <winrt/base.h>
 
+#include <string.h>
 #include <algorithm>
 #include <format>
 
@@ -75,7 +76,13 @@ int WINAPI wWinMain(
       profile = Profile::Load(profileName);
     } else {
       const auto profiles = Profile::Enumerate();
-      const auto it = std::ranges::find(profiles, profileName, &Profile::mName);
+      // Try an exact match first, then fall back to case-insensitive
+      auto it = std::ranges::find(profiles, profileName, &Profile::mName);
+      if (it == profiles.end()) {
+        it = std::ranges::find_if(profiles, [a = profileName](const auto& b) {
+          return _stricmp(a.c_str(), b.mName.c_str()) == 0;
+        });
+      }
       if (it == profiles.end()) {
         PrintCERR(std::format("Couldn't find a profile called '{}'", profileName));
         return 1;
