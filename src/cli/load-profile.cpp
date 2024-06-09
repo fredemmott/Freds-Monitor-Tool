@@ -7,7 +7,8 @@
 #include <FredEmmott/MonitorTool/except.hpp>
 #include <winrt/base.h>
 
-#include <vector>
+#include <algorithm>
+#include <format>
 
 #include <Windows.h>
 
@@ -16,17 +17,10 @@ using namespace FredEmmott::MonitorTool::CLI;
 namespace {
 constexpr char HelpText[] {
   "USAGE: \n"
-  "  fmt-create-profile PROFILE_NAME [--path PATH]\n"
-  "  fmt-create-profile --help",
+  "  fmt-load-profile [--path] PROFILE_NAME_OR_PATH\n"
+  "  fmt-load-profile --help",
 };
 
-void HelpCERR() {
-  PrintCERR(HelpText);
-}
-
-void HelpCOUT() {
-  PrintCOUT(HelpText);
-}
 }// namespace
 
 int WINAPI wWinMain(
@@ -39,22 +33,18 @@ int WINAPI wWinMain(
   int argc {};
   const auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 
-  std::wstring_view profilePath;
+  bool profileNameIsPath = false;
   std::string profileName;
 
   for (int i = 1; i < argc; ++i) {
     const std::wstring_view arg {argv[i]};
     if (arg.starts_with(L"-")) {
       if (arg == L"--help") {
-        HelpCOUT();
+        PrintCOUT(HelpText);
         return 0;
       }
       if (arg == L"--path") {
-        if (i + 1 >= argc) {
-          HelpCERR();
-          return 1;
-        }
-        profilePath = {argv[++i]};
+        profileNameIsPath = true;
         continue;
       }
       PrintCERR(HelpText);
@@ -79,14 +69,26 @@ int WINAPI wWinMain(
   }
 
   try {
-    const auto profile
-      = FredEmmott::MonitorTool::Profile::CreateFromActiveConfiguration(
-        profileName);
-    if (profilePath.empty()) {
-      profile.Save();
+    using Profile = FredEmmott::MonitorTool::Profile;
+    Profile profile {};
+    if (profileNameIsPath) {
+      profile = Profile::Load(profileName);
     } else {
-      profile.Save(profilePath);
+      const auto profiles = Profile::Enumerate();
+      const auto it = std::ranges::find(profiles, profileName, &Profile::mName);
+      if (it == profiles.end()) {
+        PrintCERR(std::format("Couldn't find a profile called '{}'", profileName));
+        return 1;
+      }
+
+      profile = *it;
     }
+
+    if (!profile.CanApply()) {
+      PrintCERR("Profile can't be applied due to a configuration change");
+      return 1;
+    }
+    profile.Apply();
   } catch (const FredEmmott::MonitorTool::RuntimeError& e) {
     PrintCERR(std::format("Fatal error: {}", e.what()).c_str());
     return 1;

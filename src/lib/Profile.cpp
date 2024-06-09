@@ -14,7 +14,12 @@ NLOHMANN_JSON_NAMESPACE_BEGIN
 template <>
 struct adl_serializer<winrt::guid> {
   static void from_json(const nlohmann::json& j, winrt::guid& v) {
-    v = winrt::guid {j.get<std::string>()};
+    auto s = j.get<std::string_view>();
+    if (s.size() == 38 && (s.front() == '{') && (s.back() == '}')) {
+      s.remove_prefix(1);
+      s.remove_suffix(1);
+    }
+    v = winrt::guid { s };
   }
 
   static void to_json(nlohmann::json& j, const winrt::guid& v) {
