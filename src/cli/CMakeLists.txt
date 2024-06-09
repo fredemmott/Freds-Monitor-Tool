@@ -52,9 +52,7 @@ target_link_libraries(
   FredEmmott_MonitorTool_console
 )
 
-include(GNUInstallDirs)
-
 foreach(TARGET IN LISTS REDIST_TARGETS)
   sign_target(${TARGET})
 endforeach()
-install(TARGETS ${REDIST_TARGETS})
+install(TARGETS ${REDIST_TARGETS} DESTINATION ".")
