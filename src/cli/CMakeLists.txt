@@ -1,3 +1,10 @@
+set(
+  REDIST_TARGETS
+  fmt-create-profile
+  fmt-apply-profile
+  fmt-list-profiles
+)
+
 add_library(
   FredEmmott_MonitorTool_console
   STATIC
@@ -39,3 +46,10 @@ target_link_libraries(
   FredEmmott_MonitorTool_Profile
   FredEmmott_MonitorTool_console
 )
+
+include(GNUInstallDirs)
+
+foreach(TARGET IN LISTS REDIST_TARGETS)
+  sign_target(${TARGET})
+endforeach()
+install(TARGETS ${REDIST_TARGETS})
