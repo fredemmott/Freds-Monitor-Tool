@@ -49,6 +49,11 @@ winrt::guid CreateRandomGUID() {
 }// namespace
 
 void Profile::Save(const std::filesystem::path& path) const {
+  const auto parent = path.parent_path();
+  if (!std::filesystem::exists(parent)) {
+    std::filesystem::create_directories(parent);
+  }
+
   const nlohmann::json j {
     {"GUID", mGuid},
     {"Name", mName},
@@ -144,6 +149,10 @@ Profile Profile::CreateFromActiveConfiguration(const std::string& name) {
 }
 
 std::vector<Profile> Profile::Enumerate() {
+  if (!std::filesystem::is_directory(ProfilesPath)) {
+    return {};
+  }
+  
   std::vector<Profile> ret;
   for (auto&& entry: std::filesystem::directory_iterator(ProfilesPath)) {
     if (!entry.is_regular_file()) {
