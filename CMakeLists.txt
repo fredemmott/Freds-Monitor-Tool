@@ -53,7 +53,7 @@ endif()
 
 project(
   freds-monitor-tool
-  VERSION 0.1.0.${VERSION_BUILD}
+  VERSION 0.2.0.${VERSION_BUILD}
   LANGUAGES CXX C)
 
 if(DEFINED ENV{GITHUB_RUN_NUMBER})
