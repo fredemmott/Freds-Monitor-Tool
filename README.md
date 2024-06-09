@@ -2,6 +2,8 @@
 
 This is a set of command-line tools to save and restore monitor configuration profiles; a profile contains a list of which monitors are enabled, their layout, their resolution, among other settings.
 
+**YOU MAY NEED TO DELETE AND RECREATE PROFILES AFTER DRIVER OR WINDOWS UPDATES**.
+
 ## Quick Start
 
 64-Bit Windows 10 or newer is required.
