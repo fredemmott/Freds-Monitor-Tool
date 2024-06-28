@@ -55,6 +55,28 @@ target_include_directories(
     include
 )
 
+add_library(System::DXGI INTERFACE IMPORTED)
+set_property(
+    TARGET System::DXGI
+    PROPERTY IMPORTED_LIBNAME DXGI
+)
+
+add_library(
+    FredEmmott_MonitorTool_EnumAdapterDescs
+    STATIC
+    EnumAdapterDescs.cpp
+)
+target_include_directories(
+    FredEmmott_MonitorTool_EnumAdapterDescs
+    PUBLIC
+    include
+)
+target_link_libraries(
+    FredEmmott_MonitorTool_EnumAdapterDescs
+    PUBLIC
+    System::DXGI
+)
+
 add_library(
     FredEmmott_MonitorTool_Profile
     STATIC
@@ -68,6 +90,7 @@ target_include_directories(
 target_link_libraries(
     FredEmmott_MonitorTool_Profile
     PRIVATE
+    FredEmmott_MonitorTool_EnumAdapterDescs
     FredEmmott_MonitorTool_QueryDisplayConfig
     FredEmmott_MonitorTool_SetDisplayConfig
     FredEmmott_MonitorTool_json

@@ -5,10 +5,13 @@
 #include "DisplayConfig.hpp"
 #include "except.hpp"
 
+#include <winrt/base.h>
+
 #include <filesystem>
 #include <string>
 #include <vector>
-#include <winrt/base.h>
+
+#include <dxgi.h>
 
 namespace FredEmmott::MonitorTool {
 
@@ -38,7 +41,8 @@ struct Profile final {
 
   static Profile Load(const std::filesystem::path& path);
   void Save(const std::filesystem::path& path) const;
-  /* Saves to the same path it was loaded from, or the user's profile store if it's not yet been saved. */
+  /* Saves to the same path it was loaded from, or the user's profile store if
+   * it's not yet been saved. */
   void Save() const;
 
   static std::vector<Profile> Enumerate();
@@ -48,6 +52,7 @@ struct Profile final {
   void Apply() const;
 
   std::string mName;
+  std::vector<DXGI_ADAPTER_DESC1> mAdapters;
   DisplayConfig mDisplayConfig;
 
   // Automatically filled

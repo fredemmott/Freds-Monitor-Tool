@@ -3,6 +3,7 @@
 #include <FredEmmott/MonitorTool/json.hpp>
 
 #include <bit>
+#include <winrt/base.h>
 
 void from_json(const nlohmann::json& j, LUID& v) {
   static_assert(sizeof(uint64_t) == sizeof(LUID));
@@ -13,6 +14,35 @@ void to_json(nlohmann::json& j, const LUID& v) {
   static_assert(sizeof(uint64_t) == sizeof(LUID));
   j = std::bit_cast<uint64_t>(v);
 }
+
+///// START DXGI_ADAPTER_DESC1 /////
+#define XFIELDS \
+  X(VendorId) \
+  X(DeviceId) \
+  X(SubSysId) \
+  X(Revision) \
+  X(DedicatedVideoMemory) \
+  X(AdapterLuid) \
+  X(Flags)
+  
+void from_json(const nlohmann::json& j, DXGI_ADAPTER_DESC1& v) {
+  const auto desc = winrt::to_hstring(j.at("Description"));
+  wcsncpy_s(v.Description, desc.c_str(), std::size(v.Description));
+#define X(FIELD) v.FIELD = j.at(#FIELD);
+  XFIELDS
+#undef X
+}
+
+void to_json(nlohmann::json& j, const DXGI_ADAPTER_DESC1& v) {
+  const std::wstring_view desc { v.Description, wcsnlen_s(v.Description, std::size(v.Description)) };
+  j["Description"] = winrt::to_string(desc);
+#define X(FIELD) {#FIELD, v.FIELD},
+  j.update({XFIELDS});
+#undef X
+}
+
+#undef XFIELDS
+///// END DXGI_ADAPTER_DESC1 /////
 
 ///// START DISPLAYCONFIG_PATH_SOURCE_INFO /////
 // Not using the NLOHMANN macros because they take references, which aren't

@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include <Windows.h>
+#include <dxgi.h>
 
 void from_json(const nlohmann::json& j, LUID& v);
 void to_json(nlohmann::json& j, const LUID& v);
@@ -23,6 +24,9 @@ void to_json(nlohmann::json& j, const DISPLAYCONFIG_PATH_SOURCE_INFO& v);
 
 void from_json(const nlohmann::json& j, DISPLAYCONFIG_PATH_TARGET_INFO& v);
 void to_json(nlohmann::json& j, const DISPLAYCONFIG_PATH_TARGET_INFO& v);
+
+void from_json(const nlohmann::json&, DXGI_ADAPTER_DESC1&);
+void to_json(nlohmann::json&, const DXGI_ADAPTER_DESC1&);
 
 static_assert(
   sizeof(DISPLAYCONFIG_VIDEO_SIGNAL_INFO::AdditionalSignalInfo)

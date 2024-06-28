@@ -4,33 +4,99 @@
 #include "console.hpp"
 
 #include <FredEmmott/MonitorTool/Config.hpp>
+#include <FredEmmott/MonitorTool/EnumAdapterDescs.hpp>
 #include <FredEmmott/MonitorTool/Profile.hpp>
 #include <FredEmmott/MonitorTool/except.hpp>
 #include <winrt/base.h>
 
 #include <algorithm>
 #include <format>
+#include <optional>
+#include <ranges>
 
 #include <Windows.h>
 #include <string.h>
 
 using namespace FredEmmott::MonitorTool::Config;
 using namespace FredEmmott::MonitorTool::CLI;
+using Profile = FredEmmott::MonitorTool::Profile;
 
 namespace {
 const auto HelpText = std::format(
   "Freds Monitor Tool v{}\n"
   "\n"
-  "USAGE: \n"
-  "  fmt-apply-profile [--path] PROFILE_NAME_OR_PATH\n"
+  "USAGE:\n"
+  "  fmt-apply-profile [--update] [--path] PROFILE_NAME_OR_PATH\n"
   "  fmt-apply-profile --help\n"
   "\n"
+  "OPTIONS:\n"
+  "  --path: the following argument is a JSON file path, not a profile name\n"
+  "  --update: update the graphics adapter list saved in the profile\n"
+  "  --help: show this text\n"
   "---\n"
   "{}",
   VersionString,
   LicenseText);
 
 }// namespace
+
+bool operator==(const LUID& a, const LUID& b) {
+  return memcmp(&a, &b, sizeof(LUID)) == 0;
+}
+
+static Profile ReplaceLUID(
+  const std::optional<LUID>& search,
+  const LUID& replace,
+  const Profile& in) {
+  Profile ret {in};
+
+  for (auto& path: ret.mDisplayConfig.mPaths) {
+    if ((!search) || *search == path.sourceInfo.adapterId) {
+      path.sourceInfo.adapterId = replace;
+    }
+    if ((!search) || *search == path.targetInfo.adapterId) {
+      path.targetInfo.adapterId = replace;
+    }
+  }
+  for (auto& mode: ret.mDisplayConfig.mModes) {
+    if ((!search) || *search == mode.adapterId) {
+      mode.adapterId = replace;
+    }
+  }
+
+  return ret;
+}
+
+static bool ApplyAdapterlessProfileWithCurrentSingleGPU(
+  const Profile& in,
+  const std::vector<DXGI_ADAPTER_DESC1>& allAdapters,
+  bool saveUpdates) {
+  if (!in.mAdapters.empty()) {
+    return false;
+  }
+  const auto badFlags = DXGI_ADAPTER_FLAG_REMOTE | DXGI_ADAPTER_FLAG_SOFTWARE;
+  std::vector<DXGI_ADAPTER_DESC1> realAdapters;
+  for (const auto& it: allAdapters) {
+    if ((it.Flags & badFlags) == 0) {
+      realAdapters.push_back(it);
+    }
+  }
+  if (realAdapters.size() != 1) {
+    return false;
+  }
+
+  const auto replacement = realAdapters.front().AdapterLuid;
+  const auto profile = ReplaceLUID(std::nullopt, replacement, in);
+
+  if (!profile.CanApply()) {
+    return false;
+  }
+  profile.Apply();
+  if (saveUpdates) {
+    profile.Save();
+  }
+  return true;
+}
 
 int WINAPI wWinMain(
   [[maybe_unused]] HINSTANCE hInstance,
@@ -43,6 +109,7 @@ int WINAPI wWinMain(
   const auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 
   bool profileNameIsPath = false;
+  bool updateProfile = false;
   std::string profileName;
 
   for (int i = 1; i < argc; ++i) {
@@ -55,6 +122,9 @@ int WINAPI wWinMain(
       if (arg == L"--path") {
         profileNameIsPath = true;
         continue;
+      if (arg == L"--update") {
+        updateProfile = true;
+      }
       }
       PrintCERR(HelpText);
       return 1;
@@ -75,11 +145,10 @@ int WINAPI wWinMain(
   if (profileName.empty()) {
     PrintCERR(
       std::format("Profile name was empty or not provided\n{}", HelpText));
-      return 1;
+    return 1;
   }
 
   try {
-    using Profile = FredEmmott::MonitorTool::Profile;
     Profile profile {};
     if (profileNameIsPath) {
       profile = Profile::Load(profileName);
@@ -102,6 +171,10 @@ int WINAPI wWinMain(
     }
 
     if (!profile.CanApply()) {
+      const auto allAdapters = FredEmmott::MonitorTool::EnumAdapterDescs();
+      if (ApplyAdapterlessProfileWithCurrentSingleGPU(profile, allAdapters, updateProfile)) {
+        return 0;
+      }
       PrintCERR("Profile can't be applied due to a configuration change");
       return 1;
     }

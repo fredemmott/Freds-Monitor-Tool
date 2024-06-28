@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: ISC
 
 #include <FredEmmott/MonitorTool/Profile.hpp>
+#include <FredEmmott/MonitorTool/EnumAdapterDescs.hpp>
 #include <FredEmmott/MonitorTool/QueryDisplayConfig.hpp>
 #include <FredEmmott/MonitorTool/SetDisplayConfig.hpp>
 #include <FredEmmott/MonitorTool/json.hpp>
@@ -19,7 +20,7 @@ struct adl_serializer<winrt::guid> {
       s.remove_prefix(1);
       s.remove_suffix(1);
     }
-    v = winrt::guid { s };
+    v = winrt::guid {s};
   }
 
   static void to_json(nlohmann::json& j, const winrt::guid& v) {
@@ -137,6 +138,7 @@ Profile Profile::Load(const std::filesystem::path& path) {
   const auto j = nlohmann::json::parse(buffer);
   return {
         .mName = j.at("Name"),
+        .mAdapters = j.value("Adapters", std::vector<DXGI_ADAPTER_DESC1>{}),
         .mDisplayConfig = {
             .mPaths = j.at("Paths"),
             .mModes = j.at("Modes"),
@@ -148,6 +150,7 @@ Profile Profile::Load(const std::filesystem::path& path) {
 Profile Profile::CreateFromActiveConfiguration(const std::string& name) {
   return {
     .mName = name,
+    .mAdapters = EnumAdapterDescs(),
     .mDisplayConfig = QueryDisplayConfig(),
     .mGuid = CreateRandomGUID(),
   };
@@ -157,7 +160,7 @@ std::vector<Profile> Profile::Enumerate() {
   if (!std::filesystem::is_directory(ProfilesPath)) {
     return {};
   }
-  
+
   std::vector<Profile> ret;
   for (auto&& entry: std::filesystem::directory_iterator(ProfilesPath)) {
     if (!entry.is_regular_file()) {
