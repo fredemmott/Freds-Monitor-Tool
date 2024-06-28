@@ -40,27 +40,108 @@ const auto HelpText = std::format(
 
 }// namespace
 
-bool operator==(const LUID& a, const LUID& b) {
+inline bool operator==(const LUID& a, const LUID& b) {
   return memcmp(&a, &b, sizeof(LUID)) == 0;
 }
 
-static Profile ReplaceLUID(
-  const std::optional<LUID>& search,
-  const LUID& replace,
-  const Profile& in) {
-  Profile ret {in};
+static bool IsLikelySameModelGPU(
+  const DXGI_ADAPTER_DESC1& a,
+  const DXGI_ADAPTER_DESC1& b) {
+  return (a.VendorId == b.VendorId) && (a.DeviceId == b.DeviceId)
+    && (a.DedicatedVideoMemory == b.DedicatedVideoMemory)
+    && (a.Flags == b.Flags);
+}
 
-  for (auto& path: ret.mDisplayConfig.mPaths) {
-    if ((!search) || *search == path.sourceInfo.adapterId) {
-      path.sourceInfo.adapterId = replace;
-    }
-    if ((!search) || *search == path.targetInfo.adapterId) {
-      path.targetInfo.adapterId = replace;
+static std::optional<LUID> GetUpdatedLUID(
+  const LUID& in,
+  const Profile& profile,
+  const std::vector<DXGI_ADAPTER_DESC1> currentAdapters) {
+  for (const auto& it: currentAdapters) {
+    if (it.AdapterLuid == in) {
+      return in;
     }
   }
+
+  if (profile.mAdapters.empty()) {
+    return {};
+  }
+
+  const auto oldIt = std::ranges::find(
+    profile.mAdapters, in, &DXGI_ADAPTER_DESC1::AdapterLuid);
+  if (oldIt == profile.mAdapters.end()) {
+    return {};
+  }
+
+  size_t oldIdxForModel = 0;
+  for (const auto& it: profile.mAdapters) {
+    if (it.AdapterLuid == in) {
+      break;
+    }
+    if (IsLikelySameModelGPU(it, *oldIt)) {
+      ++oldIdxForModel;
+    }
+  }
+
+  for (const auto& it: currentAdapters) {
+    if (IsLikelySameModelGPU(it, *oldIt)) {
+      if (oldIdxForModel == 0) {
+        return it.AdapterLuid;
+      }
+      --oldIdxForModel;
+    }
+  }
+
+  return {};
+}
+
+template <>
+struct std::hash<LUID> {
+  std::size_t operator()(const LUID& v) const noexcept {
+    return std::hash<uint64_t> {}(std::bit_cast<uint64_t>(v));
+  }
+};
+
+const std::optional<Profile> UpdateLUIDs(
+  const Profile& in,
+  const std::vector<DXGI_ADAPTER_DESC1>& currentAdapters) {
+  Profile ret {in};
+  ret.mAdapters = currentAdapters;
+  std::unordered_map<LUID, LUID> luids;
+
+  auto map = [&](const LUID& luid) -> std::optional<LUID> {
+    if (luids.contains(luid)) {
+      return luids.at(luid);
+    }
+    const auto ret = GetUpdatedLUID(luid, in, currentAdapters);
+    if (ret) {
+      luids.emplace(luid, *ret);
+    }
+    return ret;
+  };
+
   for (auto& mode: ret.mDisplayConfig.mModes) {
-    if ((!search) || *search == mode.adapterId) {
-      mode.adapterId = replace;
+    const auto it = map(mode.adapterId);
+    if (!it) {
+      return {};
+    }
+
+    mode.adapterId = *it;
+  }
+
+  for (auto& path: ret.mDisplayConfig.mPaths) {
+    {
+      const auto it = map(path.sourceInfo.adapterId);
+      if (!it) {
+        return {};
+      }
+      path.sourceInfo.adapterId = *it;
+    }
+    {
+      const auto it = map(path.targetInfo.adapterId);
+      if (!it) {
+        return {};
+      }
+      path.targetInfo.adapterId = *it;
     }
   }
 
@@ -86,13 +167,22 @@ static bool ApplyAdapterlessProfileWithCurrentSingleGPU(
   }
 
   const auto replacement = realAdapters.front().AdapterLuid;
-  const auto profile = ReplaceLUID(std::nullopt, replacement, in);
+  Profile profile {in};
+
+  for (auto& path: profile.mDisplayConfig.mPaths) {
+    path.sourceInfo.adapterId = replacement;
+    path.targetInfo.adapterId = replacement;
+  }
+  for (auto& mode: profile.mDisplayConfig.mModes) {
+    mode.adapterId = replacement;
+  }
 
   if (!profile.CanApply()) {
     return false;
   }
   profile.Apply();
   if (saveUpdates) {
+    profile.mAdapters = allAdapters;
     profile.Save();
   }
   return true;
@@ -109,7 +199,7 @@ int WINAPI wWinMain(
   const auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 
   bool profileNameIsPath = false;
-  bool updateProfile = false;
+  bool saveUpdates = false;
   std::string profileName;
 
   for (int i = 1; i < argc; ++i) {
@@ -122,9 +212,9 @@ int WINAPI wWinMain(
       if (arg == L"--path") {
         profileNameIsPath = true;
         continue;
-      if (arg == L"--update") {
-        updateProfile = true;
-      }
+        if (arg == L"--update") {
+          saveUpdates = true;
+        }
       }
       PrintCERR(HelpText);
       return 1;
@@ -172,9 +262,17 @@ int WINAPI wWinMain(
 
     if (!profile.CanApply()) {
       const auto allAdapters = FredEmmott::MonitorTool::EnumAdapterDescs();
-      if (ApplyAdapterlessProfileWithCurrentSingleGPU(profile, allAdapters, updateProfile)) {
+      if (ApplyAdapterlessProfileWithCurrentSingleGPU(
+            profile, allAdapters, saveUpdates)) {
         return 0;
       }
+        const auto updated = UpdateLUIDs(profile, allAdapters);
+        if (updated && updated->CanApply()) {
+          updated->Apply();
+          if (saveUpdates) {
+            updated->Save();
+          }
+        }
       PrintCERR("Profile can't be applied due to a configuration change");
       return 1;
     }
