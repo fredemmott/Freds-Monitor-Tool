@@ -212,9 +212,10 @@ int WINAPI wWinMain(
       if (arg == L"--path") {
         profileNameIsPath = true;
         continue;
-        if (arg == L"--update") {
-          saveUpdates = true;
-        }
+      }
+      if (arg == L"--update") {
+        saveUpdates = true;
+        continue;
       }
       PrintCERR(HelpText);
       return 1;
@@ -266,13 +267,13 @@ int WINAPI wWinMain(
             profile, allAdapters, saveUpdates)) {
         return 0;
       }
-        const auto updated = UpdateLUIDs(profile, allAdapters);
-        if (updated && updated->CanApply()) {
-          updated->Apply();
-          if (saveUpdates) {
-            updated->Save();
-          }
+      const auto updated = UpdateLUIDs(profile, allAdapters);
+      if (updated && updated->CanApply()) {
+        updated->Apply();
+        if (saveUpdates) {
+          updated->Save();
         }
+      }
       PrintCERR("Profile can't be applied due to a configuration change");
       return 1;
     }
