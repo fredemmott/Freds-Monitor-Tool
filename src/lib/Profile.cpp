@@ -1,8 +1,8 @@
 // Copyright 2024, Fred Emmott
 // SPDX-License-Identifier: ISC
 
-#include <FredEmmott/MonitorTool/Profile.hpp>
 #include <FredEmmott/MonitorTool/EnumAdapterDescs.hpp>
+#include <FredEmmott/MonitorTool/Profile.hpp>
 #include <FredEmmott/MonitorTool/QueryDisplayConfig.hpp>
 #include <FredEmmott/MonitorTool/SetDisplayConfig.hpp>
 #include <FredEmmott/MonitorTool/json.hpp>
