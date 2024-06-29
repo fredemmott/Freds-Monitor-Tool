@@ -343,6 +343,7 @@ int WINAPI wWinMain(
         if (saveUpdates) {
           updated->Save();
         }
+        return 0;
       }
       PrintCERR("Profile can't be applied due to a configuration change");
       return 1;
