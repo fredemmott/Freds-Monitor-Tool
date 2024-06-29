@@ -145,6 +145,7 @@ Profile Profile::Load(const std::filesystem::path& path) {
             .mModes = j.at("Modes"),
         },
         .mGuid = j.at("GUID"),
+        .mPath = path,
     };
 }
 
