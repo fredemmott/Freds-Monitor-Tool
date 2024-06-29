@@ -63,6 +63,7 @@ void Profile::Save(const std::filesystem::path& path) const {
   const nlohmann::json j {
     {"GUID", mGuid},
     {"Name", mName},
+    {"Adapters", mAdapters},
     {"Paths", mDisplayConfig.mPaths},
     {"Modes", mDisplayConfig.mModes},
   };
