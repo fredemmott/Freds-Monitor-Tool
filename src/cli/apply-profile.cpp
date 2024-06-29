@@ -26,17 +26,24 @@ const auto HelpText = std::format(
   "Freds Monitor Tool v{}\n"
   "\n"
   "USAGE:\n"
-  "  fmt-apply-profile [--update] [--path] PROFILE_NAME_OR_PATH\n"
+  "  fmt-apply-profile [--update] [--path|--guid] PROFILE_NAME\n"
   "  fmt-apply-profile --help\n"
   "\n"
   "OPTIONS:\n"
   "  --path: the following argument is a JSON file path, not a profile name\n"
+  "  --guid: the following argument is a profile GUID, not a profile name\n"
   "  --update: update the graphics adapter list saved in the profile\n"
   "  --help: show this text\n"
   "---\n"
   "{}",
   VersionString,
   LicenseText);
+
+enum class ProfileParamKind {
+  ProfileName,
+  ProfileGUID,
+  FilePath,
+};
 
 }// namespace
 
@@ -188,6 +195,48 @@ static bool ApplyAdapterlessProfileWithCurrentSingleGPU(
   return true;
 }
 
+static std::optional<Profile> FindProfileByName(const std::string& name) {
+  const auto profiles = Profile::Enumerate();
+  // Try an exact match first, then fall back to case-insensitive
+  auto it = std::ranges::find(profiles, name, &Profile::mName);
+  if (it != profiles.end()) {
+    return *it;
+  }
+
+  it = std::ranges::find_if(profiles, [a = name](const auto& b) {
+    return _stricmp(a.c_str(), b.mName.c_str()) == 0;
+  });
+  if (it != profiles.end()) {
+    return *it;
+  }
+
+  return {};
+}
+
+static std::optional<Profile> FindProfileByGUID(const std::string& guidStrIn) {
+  std::string_view guidStr {guidStrIn};
+  if (
+    guidStr.size() == 38 && (guidStr.front() == '{')
+    && (guidStr.back() == '}')) {
+    guidStr.remove_prefix(1);
+    guidStr.remove_suffix(1);
+  }
+  winrt::guid guid;
+  try {
+    guid = winrt::guid {guidStr};
+  } catch (const std::invalid_argument&) {
+    return {};
+  }
+
+  const auto profiles = Profile::Enumerate();
+  auto it = std::ranges::find(profiles, guid, &Profile::mGuid);
+  if (it != profiles.end()) {
+    return *it;
+  }
+
+  return {};
+}
+
 int WINAPI wWinMain(
   [[maybe_unused]] HINSTANCE hInstance,
   [[maybe_unused]] HINSTANCE hPrevInstance,
@@ -198,9 +247,9 @@ int WINAPI wWinMain(
   int argc {};
   const auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 
-  bool profileNameIsPath = false;
+  std::optional<ProfileParamKind> profileParamKind;
   bool saveUpdates = false;
-  std::string profileName;
+  std::string profileParam;
 
   for (int i = 1; i < argc; ++i) {
     const std::wstring_view arg {argv[i]};
@@ -210,7 +259,21 @@ int WINAPI wWinMain(
         return 0;
       }
       if (arg == L"--path") {
-        profileNameIsPath = true;
+        if (profileParamKind) {
+          PrintCERR(HelpText);
+          return 1;
+        }
+
+        profileParamKind = ProfileParamKind::FilePath;
+        continue;
+      }
+      if (arg == L"--guid") {
+        if (profileParamKind) {
+          PrintCERR(HelpText);
+          return 1;
+        }
+
+        profileParamKind = ProfileParamKind::ProfileGUID;
         continue;
       }
       if (arg == L"--update") {
@@ -221,19 +284,19 @@ int WINAPI wWinMain(
       return 1;
     }
 
-    if (!profileName.empty()) {
+    if (!profileParam.empty()) {
       PrintCERR(std::format(
         "Multiple profile names provided.\n"
         "First: {}\nNext: {}\n{}",
-        profileName,
+        profileParam,
         winrt::to_string(arg),
         HelpText));
       return 1;
     }
-    profileName = winrt::to_string(arg);
+    profileParam = winrt::to_string(arg);
   }
 
-  if (profileName.empty()) {
+  if (profileParam.empty()) {
     PrintCERR(
       std::format("Profile name was empty or not provided\n{}", HelpText));
     return 1;
@@ -241,24 +304,31 @@ int WINAPI wWinMain(
 
   try {
     Profile profile {};
-    if (profileNameIsPath) {
-      profile = Profile::Load(profileName);
-    } else {
-      const auto profiles = Profile::Enumerate();
-      // Try an exact match first, then fall back to case-insensitive
-      auto it = std::ranges::find(profiles, profileName, &Profile::mName);
-      if (it == profiles.end()) {
-        it = std::ranges::find_if(profiles, [a = profileName](const auto& b) {
-          return _stricmp(a.c_str(), b.mName.c_str()) == 0;
-        });
-      }
-      if (it == profiles.end()) {
-        PrintCERR(
-          std::format("Couldn't find a profile called '{}'", profileName));
-        return 1;
-      }
+    switch (profileParamKind.value_or(ProfileParamKind::ProfileName)) {
+      case ProfileParamKind::FilePath:
+        profile = Profile::Load(profileParam);
+        break;
+      case ProfileParamKind::ProfileName: {
+        auto it = FindProfileByName(profileParam);
+        if (!it) {
+          PrintCERR(
+            std::format("Couldn't find a profile called '{}'", profileParam));
+          return 1;
+        }
 
-      profile = *it;
+        profile = *it;
+        break;
+      }
+      case ProfileParamKind::ProfileGUID: {
+        auto it = FindProfileByGUID(profileParam);
+        if (!it) {
+          PrintCERR(std::format(
+            "Couldn't find a profile with GUID '{}'", profileParam));
+          return 1;
+        }
+        profile = *it;
+        break;
+      }
     }
 
     if (!profile.CanApply()) {
