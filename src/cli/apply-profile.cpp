@@ -19,7 +19,7 @@
 
 using namespace FredEmmott::MonitorTool::Config;
 using namespace FredEmmott::MonitorTool::CLI;
-using Profile = FredEmmott::MonitorTool::Profile;
+using namespace FredEmmott::MonitorTool;
 
 namespace {
 const auto HelpText = std::format(
@@ -33,6 +33,7 @@ const auto HelpText = std::format(
   "  --path: the following argument is a JSON file path, not a profile name\n"
   "  --guid: the following argument is a profile GUID, not a profile name\n"
   "  --update: update the graphics adapter list saved in the profile\n"
+  "  --temporary: tell Windows to apply the configuration without saving\n"
   "  --help: show this text\n"
   "---\n"
   "{}",
@@ -157,6 +158,7 @@ const std::optional<Profile> UpdateLUIDs(
 
 static bool ApplyAdapterlessProfileWithCurrentSingleGPU(
   const Profile& in,
+  ApplyMode applyMode,
   const std::vector<DXGI_ADAPTER_DESC1>& allAdapters,
   bool saveUpdates) {
   if (!in.mAdapters.empty()) {
@@ -187,7 +189,7 @@ static bool ApplyAdapterlessProfileWithCurrentSingleGPU(
   if (!profile.CanApply()) {
     return false;
   }
-  profile.Apply();
+  profile.Apply(applyMode);
   if (saveUpdates) {
     profile.mAdapters = allAdapters;
     profile.Save();
@@ -249,6 +251,7 @@ int WINAPI wWinMain(
 
   std::optional<ProfileParamKind> profileParamKind;
   bool saveUpdates = false;
+  auto applyMode = ApplyMode::Persistent;
   std::string profileParam;
 
   for (int i = 1; i < argc; ++i) {
@@ -278,6 +281,10 @@ int WINAPI wWinMain(
       }
       if (arg == L"--update") {
         saveUpdates = true;
+        continue;
+      }
+      if (arg == L"--temporary") {
+        applyMode = ApplyMode::Temporary;
         continue;
       }
       PrintCERR(HelpText);
@@ -332,14 +339,14 @@ int WINAPI wWinMain(
     }
 
     if (!profile.CanApply()) {
-      const auto allAdapters = FredEmmott::MonitorTool::EnumAdapterDescs();
+      const auto allAdapters = EnumAdapterDescs();
       if (ApplyAdapterlessProfileWithCurrentSingleGPU(
-            profile, allAdapters, saveUpdates)) {
+            profile, applyMode, allAdapters, saveUpdates)) {
         return 0;
       }
       const auto updated = UpdateLUIDs(profile, allAdapters);
       if (updated && updated->CanApply()) {
-        updated->Apply();
+        updated->Apply(applyMode);
         if (saveUpdates) {
           updated->Save();
         }
@@ -348,8 +355,8 @@ int WINAPI wWinMain(
       PrintCERR("Profile can't be applied due to a configuration change");
       return 1;
     }
-    profile.Apply();
-  } catch (const FredEmmott::MonitorTool::RuntimeError& e) {
+    profile.Apply(applyMode);
+  } catch (const RuntimeError& e) {
     PrintCERR(std::format("Fatal error: {}", e.what()).c_str());
     return 1;
   }

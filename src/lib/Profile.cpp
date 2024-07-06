@@ -185,14 +185,19 @@ bool Profile::CanApply() const {
   }
 }
 
-void Profile::Apply() const {
+void Profile::Apply(ApplyMode mode) const {
   try {
     SetDisplayConfig(mDisplayConfig, SetDisplayConfigValidateFlags);
   } catch (const RuntimeError& e) {
     throw DisplayConfigValidationError(
       std::format("Validation failed: {}", e.what()));
   }
-  SetDisplayConfig(mDisplayConfig, SetDisplayConfigApplyFlags);
+
+  auto flags = SetDisplayConfigApplyFlags;
+  if (mode == ApplyMode::Persistent) {
+    flags |= SDC_SAVE_TO_DATABASE;
+  }
+  SetDisplayConfig(mDisplayConfig, flags);
 }
 
 void Profile::Save() const {
