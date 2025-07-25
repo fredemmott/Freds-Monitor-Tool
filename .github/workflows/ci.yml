@@ -41,12 +41,10 @@ jobs:
         working-directory: build
         id: configure
         run: |
-          $args = @()
-
           cmake .. `
             -A ${{matrix.cmake-arch}} `
             -DVCPKG_TARGET_TRIPLET=${{matrix.vcpkg-arch}} `
-            @args
+            "-DSOURCELINK=https://raw.githubusercontent.com/${{github.repository}}/${{github.sha}}"
 
           Add-Content $Env:GITHUB_OUTPUT "version=$(Get-Content version.txt)"
         shell: pwsh
