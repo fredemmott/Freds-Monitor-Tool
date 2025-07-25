@@ -65,7 +65,7 @@ target_include_directories(
     PUBLIC
     include
 )
-find_library(DXGI_LIB NAMES DXGI REQUIRED)
+find_library(DXGI_LIB NAMES dxgi REQUIRED)
 find_library(RUNTIMEOBJECT_LIB NAMES runtimeobject REQUIRED)
 target_link_libraries(
     FredEmmott_MonitorTool_EnumAdapterDescs
