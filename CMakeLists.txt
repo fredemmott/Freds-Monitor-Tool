@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.28..3.31 FATAL_ERROR)
 
 # No specific need for this version, but let's set *something* so
 # the lower bound is known and enforced
