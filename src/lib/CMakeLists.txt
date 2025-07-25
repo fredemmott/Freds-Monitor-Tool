@@ -55,12 +55,6 @@ target_include_directories(
     include
 )
 
-add_library(System::DXGI INTERFACE IMPORTED)
-set_property(
-    TARGET System::DXGI
-    PROPERTY IMPORTED_LIBNAME DXGI
-)
-
 add_library(
     FredEmmott_MonitorTool_EnumAdapterDescs
     STATIC
@@ -71,10 +65,13 @@ target_include_directories(
     PUBLIC
     include
 )
+find_library(DXGI_LIB NAMES DXGI REQUIRED)
+find_library(RUNTIMEOBJECT_LIB NAMES runtimeobject REQUIRED)
 target_link_libraries(
     FredEmmott_MonitorTool_EnumAdapterDescs
     PUBLIC
-    System::DXGI
+    ${DXGI_LIB}
+    ${RUNTIMEOBJECT_LIB}
 )
 
 add_library(
