@@ -99,6 +99,4 @@ add_compile_options(${COMMON_COMPILE_OPTIONS})
 
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Default)
 
-include(sign_target.cmake)
-
 add_subdirectory("src")

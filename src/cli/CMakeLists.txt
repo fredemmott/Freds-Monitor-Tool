@@ -61,7 +61,6 @@ configure_file(
 )
 
 foreach(TARGET IN LISTS REDIST_TARGETS)
-  sign_target(${TARGET})
   target_sources("${TARGET}" PRIVATE manifest.xml "${VERSION_RC}")
 endforeach()
 install(TARGETS ${REDIST_TARGETS} DESTINATION ".")
