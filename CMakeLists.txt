@@ -26,18 +26,7 @@ cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0135 NEW)
 
 set(X_VCPKG_APPLOCAL_DEPS_INSTALL ON)
-
-if("${VCPKG_TARGET_TRIPLET}" MATCHES "-static$")
-  # https://github.com/microsoft/WindowsAppSDK/blob/main/docs/Coding-Guidelines/HybridCRT.md
-  set(
-    CMAKE_MSVC_RUNTIME_LIBRARY
-    "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-  )
-  add_link_options(
-    "/DEFAULTLIB:ucrt$<$<CONFIG:Debug>:d>.lib" # include the dynamic UCRT
-    "/NODEFAULTLIB:libucrt$<$<CONFIG:Debug>:d>.lib" # remove the static UCRT
-  )
-endif()
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/hybrid-crt.cmake")
 
 set(
   CMAKE_TOOLCHAIN_FILE
@@ -55,6 +44,9 @@ project(
   freds-monitor-tool
   VERSION 0.3.1.${VERSION_BUILD}
   LANGUAGES CXX C)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
+include(smol-binaries)
 
 if(DEFINED ENV{GITHUB_RUN_NUMBER})
   set(VERSION_STRING "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}+GHA${VERSION_BUILD}")
